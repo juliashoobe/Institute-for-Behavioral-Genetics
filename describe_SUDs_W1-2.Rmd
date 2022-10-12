@@ -1,0 +1,1470 @@
+---
+title: "describe_SUDs_W1-2"
+author: "PNR"
+Creation date: "June/24/2020"
+Last updated: "August/24/2020"
+Updated by: "JSS"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+*--------
+*0: Setup*
+---------*
+
+**0.0: Install packages needed**
+------------------------------**
+```{r Install Packages, eval=FALSE, include=FALSE}
+#once: 
+install.packages('tidyverse')
+install.packages("Hmisc") #to read por files
+install.packages("haven") #to read por files
+install.packages("modeest")
+install.packages('memisc') #to read codebooks
+install.packages("ggplot2") #to plot 
+# install.packages("pandas") #package ‘pandas’ is not available (for R version 4.0.0)
+install.packages("rquery") #to merge instruments by wave using SQL functions
+install.packages("rqdatatable") #to merge instruments by wave using SQL functions
+```
+
+```{r Read Packages}
+#every time: 
+library(readr)
+library(tidyverse)
+library(haven)
+library(ggplot2)
+require("Hmisc")
+require("memisc")
+library("rquery")
+  # https://www.rdocumentation.org/packages/rquery/versions/1.4.4
+library(rqdatatable)
+```
+
+```{r run script that reads CADD instruments}
+#source(read_CADD.Rmd)
+```
+
+#JS DONE: create a list variable with the names of our variables of interest (ones you highlighted in spreadsheet)
+example: Sam_smoke_vars <- list("var1", "var2")
+```{r}
+Sam_smoke_vars <- list("cigcrit","cigcrit2","cigpeak","cigcurr","cigfreq1","cigfreq2","cigons","cgrcrit","cgrcrit2","cgrpeak","cgrcurr","cgrfreq1","cgrfreq2","cgrons","pipcrit","pipcrit2","pippeak","pipcurr","pipfreq1","pipfreq2","pipons","chwcrit","chwcrit2","chwpeak","chwcurr","chwfreq1","chwfreq2")
+```
+
+
+#JS TODO: look at this link for how to get descritive stats grouped by a variable using the by() function & how to graph based on groups:
+https://towardsdatascience.com/descriptive-statistics-in-r-8e1cad20bf3a
+
+
+
+-----------------------------
+  *1: Read in datasets*
+------------------------------
+
+
+*-------------------------------------------------------------
+*4: Descriptives for WHOLE sample (parents, siblings, probands)*
+--------------------------------------------------------------*
+
+**1.1: Total Number of People
+------------------------------**
+Wave 1
+-------
+```{r}
+length(W1_Sam$iid)
+#10,432 individuals
+
+length(W1_all$iid)
+```
+
+Wave 2
+-------
+```{r}
+length(W2_Sam$iid)
+#6,660 individuals
+```
+
+**1.2: Total Number of Families
+------------------------------**
+Wave 1
+-------
+```{r}
+length(unique(W1_Sam$family))
+#4,294 families
+```
+
+Wave 2
+-------
+```{r}
+length(unique(W2_Sam$family))
+#2,890 families
+```
+
+
+*-------------------------------------------------------------
+*5: Descriptives for CHILDREN (siblings & probands only)*
+--------------------------------------------------------------*
+
+**2.2: Total children
+------------------------------**
+JS DONE: get total number of children by gettting length of the child subset
+```{r}
+length(Sam_1_child$iid)
+#1,848 children (probands and siblings)
+```
+
+
+**2.3: Age of children
+------------------------------**
+
+------------------------
+Descriptives for SAM_W1
+------------------------
+
+JS DONE: Get range, mean, standard deviation, and median for age of children: 
+```{r}
+summary(Sam_1_child$nage)
+sd(Sam_1_child$nage)
+#min age: 10.96 
+#median age: 16.58 
+#mean age: 16.93
+#max age: 35.44
+#sd: 3.14
+#JS DONE: name these histograms like this: hist_W1_Sam_child : typeofplot_wave_instrument_datasubset 
+```
+
+#cigcrit (Ever smoked cigarettes almost every day for at least a month? 0=didn't meet criterion, 1=met criterion)
+```{r}
+W1_Sam_child$nsex <- factor(W1_Sam_child$nsex) 
+W1_Sam_child$nsex <- fct_recode(W1_Sam_child$nsex, "female" = "0", "male" = "1")
+summary(W1_Sam_child$cigcrit)
+sd(W1_Sam_child$cigcrit)
+#min: 0
+#median: 0
+#mean: 0.44
+#max: 1
+#sd: 0.50
+hist_W1_child_cigcrit<- ggplot(W1_Sam_child, aes(x=cigcrit))+
+  geom_histogram(color="darkslategrey",fill="plum") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Child Cigarette Criteria by Sex") +
+  labs(x="CigCrit", y="Count")
+hist_W1_child_cigcrit
+```
+#cigcrit2 (Smoked 20 cigarettes lifetime? 0=didn't meet criterion, 1=met criterion)
+```{r}
+summary(W1_Sam_child$cigcrit2)
+sd(W1_Sam_child$cigcrit2)
+#NA for all
+```
+#cigpeak (How many cigarettes smoked per day when you were smoking most?)
+```{r}
+summary(W1_Sam_child$cigpeak)
+sd(W1_Sam_child$cigpeak)
+#min: 1
+#median: 20
+#mean: 18
+#max: 96
+#sd: NA
+hist_W1_child_cigpeak_sex <- ggplot(W1_Sam_child, aes(x=cigpeak))+
+  geom_histogram(color="darkslategrey",fill="plum") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Child Cigarette Peak by Sex") +
+  labs(x="CigPeak", y="Count")
+hist_W1_child_cigpeak_sex
+```
+#cigcurr (In past 12 months, how many cigarettes usually smoked per day?)
+```{r}
+summary(W1_Sam_child$cigcurr)
+sd(W1_Sam_child$cigcurr)
+#NA for all
+```
+#cigfreq1 (Usual frequency of cigarette smoking in past 12 months)
+```{r}
+summary(W1_Sam_child$cigfreq1)
+sd(W1_Sam_child$cigfreq1)
+#NA for all
+```
+#cigfreq2 (Usual frequency of cigarette smoking when smoking most)
+```{r}
+summary(W1_Sam_child$cigfreq2)
+sd(W1_Sam_child$cigfreq2)
+#NA for all
+```
+#cigons (How old were you when you began smoking?)
+```{r}
+summary(W1_Sam_child$cigons)
+sd(W1_Sam_child$cigons)
+#min: 5
+#median: 13
+#mean: 12.58
+#max: 26
+#sd: NA
+hist_W1_child_cigons_sex <- ggplot(W1_Sam_child, aes(x=cigons))+
+  geom_histogram(color="darkslategrey",fill="plum") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Child Cigarette Onset by Sex") +
+  labs(x="CigOns", y="Count")
+hist_W1_child_cigons_sex
+```
+#cgrcrit (Ever smoked cigars almost every day for at least a month?)
+```{r}
+summary(W1_Sam_child$cgrcrit)
+sd(W1_Sam_child$cgrcrit)
+#min: 0
+#median: 0
+#mean: 0.03
+#max: 1
+#sd: 0.17
+hist_W1_child_cgrcrit_sex <- ggplot(W1_Sam_child, aes(x=cgrcrit))+
+  geom_histogram(color="darkslategrey",fill="plum") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Child Cigar Criteria by Sex") +
+  labs(x="CgrCrit", y="Count")
+hist_W1_child_cgrcrit_sex
+```
+#cgrcrit2 (Smoked more than 5 cigars in your life?)
+```{r}
+summary(W1_Sam_child$cgrcrit2)
+sd(W1_Sam_child$cgrcrit2)
+#NA for all
+```
+#cgrpeak (How many cigars did you smoke per day when you were smoking most?)
+```{r}
+summary(W1_Sam_child$cgrpeak)
+sd(W1_Sam_child$cgrpeak)
+#min: 1
+#median: 2
+#mean: 2.76
+#max: 10
+#sd: NA
+hist_W1_child_cgrpeak_sex <- ggplot(W1_Sam_child, aes(x=cgrpeak))+
+  geom_histogram(color="darkslategrey",fill="plum") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Child Cigar Peak by Sex") +
+  labs(x="CgrPeak", y="Count")
+hist_W1_child_cgrpeak_sex
+```
+#cgrcurr (In past 12 months, how many cigars usually smoked in a day?)
+```{r}
+summary(W1_Sam_child$cgrcurr)
+sd(W1_Sam_child$cgrcurr)
+#NA for all
+```
+#cgrfreq1 (Usual frequency of cigar smoking in past 12 months)
+```{r}
+summary(W1_Sam_child$cgrfreq1)
+sd(W1_Sam_child$cgrfreq1)
+#NA for all
+```
+#cgrfreq2 (Usual frequency of cigar smoking in period of heaviest cigar smoking)
+```{r}
+summary(W1_Sam_child$cgrfreq2)
+sd(W1_Sam_child$cgrfreq2)
+#NA for all
+```
+#cgrons (How old were you when you began smoking cigars?)
+```{r}
+summary(W1_Sam_child$cgrons)
+sd(W1_Sam_child$cgrons)
+#min: 10
+#median: 15
+#mean: 14.49
+#max: 18
+#sd: NA
+hist_W1_child_cgrons_sex <- ggplot(W1_Sam_child, aes(x=cgrons))+
+  geom_histogram(color="darkslategrey",fill="plum") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Child Cigar Onset by Sex") +
+  labs(x="CgrOns", y="Count")
+hist_W1_child_cgrons_sex
+```
+#pipcrit (Ever smoked a pipe almost every day for at least a month?)
+```{r}
+summary(W1_Sam_child$pipcrit)
+sd(W1_Sam_child$pipcrit)
+#min: 0
+#median: 0
+#mean: 0.008
+#max: 1
+#sd: 0.09
+hist_W1_child_pipcrit_sex <- ggplot(W1_Sam_child, aes(x=pipcrit))+
+  geom_histogram(color="darkslategrey",fill="plum") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Child Pipe Criteria by Sex") +
+  labs(x="PipCrit", y="Count")
+hist_W1_child_pipcrit_sex
+```
+#pipcrit2 (Smoked tobacco in a pipe more than 5 times in your life?)
+```{r}
+summary(W1_Sam_child$pipcrit2)
+sd(W1_Sam_child$pipcrit2)
+#NA for all
+```
+#pippeak (How many pipefuls of tobacco per day when you were smoking most?)
+```{r}
+summary(W1_Sam_child$pippeak)
+sd(W1_Sam_child$pippeak)
+#min: 1
+#median: 2
+#mean: 5.357
+#max: 30
+#sd: NA
+hist_W1_child_pippeak_sex <- ggplot(W1_Sam_child, aes(x=pippeak))+
+  geom_histogram(color="darkslategrey",fill="plum") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Child Pipe Peak by Sex") +
+  labs(x="PipPeak", y="Count")
+hist_W1_child_pippeak_sex
+```
+#pipcurr (IN past 12 months, how many pipefuls smoked in a day?)
+```{r}
+summary(W1_Sam_child$pipcurr)
+sd(W1_Sam_child$pipcurr)
+#NA for all
+```
+#pipfreq1 (Usual frequency of pipe smoking in past 12 months)
+```{r}
+summary(W1_Sam_child$pipfreq1)
+sd(W1_Sam_child$pipfreq1)
+#NA for all
+```
+#pipfreq2 (Usual frequency of pipe smoking in period of heaviest pipe smoking)
+```{r}
+summary(W1_Sam_child$pipfreq2)
+sd(W1_Sam_child$pipfreq2)
+#NA for all
+```
+#pipons (How old were you when you began to smoke a pipe?)
+```{r}
+summary(W1_Sam_child$pipons)
+sd(W1_Sam_child$pipons)
+#min: 8
+#median: 14.5
+#mean: 14.5
+#max: 19
+#sd: NA
+hist_W1_child_pipons_sex <- ggplot(W1_Sam_child, aes(x=pipons))+
+  geom_histogram(color="darkslategrey",fill="plum") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Child Pipe Onset by Sex") +
+  labs(x="PipOns", y="Count")
+hist_W1_child_pipons_sex
+```
+#chwcrit (Have you ever used snuff or chewed tobacco {ALMOST EVERY DAY FOR AT LEAST A MONTH}?)
+```{r}
+summary(W1_Sam_child$chwcrit)
+sd(W1_Sam_child$chwcrit)
+#min: 0
+#median: 0
+#mean: 0.11
+#max: 1
+#sd: 0.31
+hist_W1_child_chwcrit_sex <- ggplot(W1_Sam_child, aes(x=chwcrit))+
+  geom_histogram(color="darkslategrey",fill="plum") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Child Chewing Tobacco Criteria by Sex") +
+  labs(x="ChwCrit", y="Count")
+hist_W1_child_chwcrit_sex
+```
+#chwcrit2 (Used snuff or chewed tobacco more than 5 times in your life?)
+```{r}
+summary(W1_Sam_child$chwcrit2)
+sd(W1_Sam_child$chwcrit2)
+#NA for all
+```
+#chwpeak (How many pouches of snuff/chews per day when you were using most?)
+```{r}
+summary(W1_Sam_child$chwpeak)
+sd(W1_Sam_child$chwpeak)
+#min: 0.5
+#median: 1
+#mean: 2.97
+#max: 40
+#sd: NA
+hist_W1_child_chwpeak_sex <- ggplot(W1_Sam_child, aes(x=chwpeak))+
+  geom_histogram(color="darkslategrey",fill="plum") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Child Chewing Tobacco Peak by Sex") +
+  labs(x="ChwPeak", y="Count")
+hist_W1_child_chwpeak_sex
+```
+#chwcurr (In past 12 months, how many pouches of snuff or chews used per day?)
+```{r}
+summary(W1_Sam_child$chwcurr)
+sd(W1_Sam_child$chwcurr)
+#NA for all
+```
+#chwfreq1 (Usual frequency of snuff/chew in past 12 months)
+```{r}
+summary(W1_Sam_child$chwfreq1)
+sd(W1_Sam_child$chwfreq1)
+#NA for all
+```
+#chwfreq2 (Usual frequency of snuff/chew during period of heaviest use)
+```{r}
+summary(W1_Sam_child$chwfreq2)
+sd(W1_Sam_child$chwfreq2)
+#NA for all
+```
+#chwons (How old were you when you began using tobacco or snuff?)
+```{r}
+summary(W1_Sam_child$chwons)
+sd(W1_Sam_child$chwons)
+#min: 5
+#median: 14
+#mean: 13.91
+#max: 21
+#sd: NA
+hist_W1_child_chwons_sex <- ggplot(W1_Sam_child, aes(x=chwons))+
+  geom_histogram(color="darkslategrey",fill="plum") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Child Chewing Tobacco Onset by Sex") +
+  labs(x="ChwOns", y="Count")
+hist_W1_child_chwons_sex
+```
+
+*-------------------------------------------------------------
+  *6: Descriptives for PROBANDS (probands only)*
+---------------------------------------------------------------
+Histograms for each Variable
+#CIDI-SAM Supplement
+```{r}
+#
+hist_W1_Supps_proband <- ggplot(W1_Supps_proband, aes(x=))+
+  geom_histogram(color="grey31",fill="darkseagreen2")+
+  facet_wrap(~NAGE)+
+  labs(title="W1 CIDI-SAM Proband ")
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+
+```
+
+
+**3.1: Total Probands
+------------------------------**
+JS DONE: get total number of children by getting length of the probands subset
+```{r}
+length(Sam_1_proband$iid)
+#1,008 probands
+```
+
+**3.2: Age of probands
+------------------------------**
+JS DONE: Get range, mean, standard deviation, and median for age of probands: 
+```{r}
+summary(Sam_1_proband$nage)
+sd(Sam_1_proband$nage)
+#min age: 11.66
+#median age: 16.44
+#mean age: 16.37
+#max age: 21.05
+#sd: 1.33
+```
+
+**3.3: SAM_W1 Proband Descriptives
+-------------------------------**
+PROBAND USERS
+#cigcrit
+```{r}
+summary(W1_Sam_prob_users$cigcrit)
+sd(W1_Sam_prob_users)$cigcrit)
+#min: 0
+#median: 0
+#mean: 0.44
+#max: 1
+#sd: 0.50
+hist_W1_proband_cigcrit<- ggplot(W1_Sam_proband, aes(x=cigcrit))+
+  geom_histogram(color="darkslategrey",fill="cyan3") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Cigarette Criteria by Sex") +
+  labs(x="CigCrit", y="Count")
+hist_W1_proband_cigcrit
+```
+#cigcrit2
+```{r}
+summary(W1_Sam_child$cigcrit2)
+sd(W1_Sam_child$cigcrit2)
+#NA for all
+```
+#cigpeak
+```{r}
+summary(W1_Sam_child$cigpeak)
+sd(W1_Sam_child$cigpeak)
+#min: 1
+#median: 20
+#mean: 18
+#max: 96
+#sd: NA
+hist_W1_proband_cigpeak<- ggplot(W1_Sam_proband, aes(x=cigpeak))+
+  geom_histogram(color="darkslategrey",fill="cyan3") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Cigarette Peak by Sex") +
+  labs(x="CigPeak", y="Count")
+hist_W1_proband_cigpeak
+```
+#cigcurr
+```{r}
+summary(W1_Sam_child$cigcurr)
+sd(W1_Sam_child$cigcurr)
+#NA for all
+```
+#cigfreq1
+```{r}
+summary(W1_Sam_child$cigfreq1)
+sd(W1_Sam_child$cigfreq1)
+#NA for all
+```
+#cigfreq2
+```{r}
+summary(W1_Sam_child$cigfreq2)
+sd(W1_Sam_child$cigfreq2)
+#NA for all
+```
+#cigons
+```{r}
+summary(W1_Sam_child$cigons)
+sd(W1_Sam_child$cigons)
+#min: 5
+#median: 13
+#mean: 12.58
+#max: 26
+#sd: NA
+hist_W1_proband_cigons<- ggplot(W1_Sam_proband, aes(x=cigons))+
+  geom_histogram(color="darkslategrey",fill="cyan3") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Cigarette Onset by Sex") +
+  labs(x="CigOns", y="Count")
+hist_W1_proband_cigons
+```
+#cgrcrit
+```{r}
+summary(W1_Sam_child$cgrcrit)
+sd(W1_Sam_child$cgrcrit)
+#min: 0
+#median: 0
+#mean: 0.03
+#max: 1
+#sd: 0.17
+hist_W1_proband_cgrcrit<- ggplot(W1_Sam_proband, aes(x=cgrcrit))+
+  geom_histogram(color="darkslategrey",fill="cyan3") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Cigar Criteria by Sex") +
+  labs(x="CgrCrit", y="Count")
+hist_W1_proband_cgrcrit
+```
+#cgrcrit2
+```{r}
+summary(W1_Sam_child$cgrcrit2)
+sd(W1_Sam_child$cgrcrit2)
+#NA for all
+```
+#cgrpeak
+```{r}
+summary(W1_Sam_child$cgrpeak)
+sd(W1_Sam_child$cgrpeak)
+#min: 1
+#median: 2
+#mean: 2.76
+#max: 10
+#sd: NA
+hist_W1_proband_cgrpeak<- ggplot(W1_Sam_proband, aes(x=cgrpeak))+
+  geom_histogram(color="darkslategrey",fill="cyan3") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Cigar Peak by Sex") +
+  labs(x="CgrPeak", y="Count")
+hist_W1_proband_cgrpeak
+```
+#cgrcurr
+```{r}
+summary(W1_Sam_child$cgrcurr)
+sd(W1_Sam_child$cgrcurr)
+#NA for all
+```
+#cgrfreq1
+```{r}
+summary(W1_Sam_child$cgrfreq1)
+sd(W1_Sam_child$cgrfreq1)
+#NA for all
+```
+#cgrfreq2
+```{r}
+summary(W1_Sam_child$cgrfreq2)
+sd(W1_Sam_child$cgrfreq2)
+#NA for all
+```
+#cgrons
+```{r}
+summary(W1_Sam_child$cgrons)
+sd(W1_Sam_child$cgrons)
+#min: 10
+#median: 15
+#mean: 14.49
+#max: 18
+#sd: NA
+hist_W1_proband_cgrons<- ggplot(W1_Sam_proband, aes(x=cgrons))+
+  geom_histogram(color="darkslategrey",fill="cyan3") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Cigar Onset by Sex") +
+  labs(x="CgrOns", y="Count")
+hist_W1_proband_cgrons
+```
+#pipcrit
+```{r}
+summary(W1_Sam_child$pipcrit)
+sd(W1_Sam_child$pipcrit)
+#min: 0
+#median: 0
+#mean: 0.008
+#max: 1
+#sd: 0.09
+hist_W1_proband_pipcrit<- ggplot(W1_Sam_proband, aes(x=pipcrit))+
+  geom_histogram(color="darkslategrey",fill="cyan3") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Pipe Criteria by Sex") +
+  labs(x="PipCrit", y="Count")
+hist_W1_proband_pipcrit
+```
+#pipcrit
+```{r}
+summary(W1_Sam_child$pipcrit2)
+sd(W1_Sam_child$pipcrit2)
+#NA for all
+```
+#pippeak
+```{r}
+summary(W1_Sam_child$pippeak)
+sd(W1_Sam_child$pippeak)
+#min: 1
+#median: 2
+#mean: 5.357
+#max: 30
+#sd: NA
+hist_W1_proband_pippeak<- ggplot(W1_Sam_proband, aes(x=pippeak))+
+  geom_histogram(color="darkslategrey",fill="cyan3") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Pipe Peak by Sex") +
+  labs(x="PipPeak", y="Count")
+hist_W1_proband_pippeak
+```
+#pipcurr
+```{r}
+summary(W1_Sam_child$pipcurr)
+sd(W1_Sam_child$pipcurr)
+#NA for all
+```
+#pipfreq1
+```{r}
+summary(W1_Sam_child$pipfreq1)
+sd(W1_Sam_child$pipfreq1)
+#NA for all
+```
+#pipfreq2
+```{r}
+summary(W1_Sam_child$pipfreq2)
+sd(W1_Sam_child$pipfreq2)
+#NA for all
+```
+#pipons
+```{r}
+summary(W1_Sam_child$pipons)
+sd(W1_Sam_child$pipons)
+#min: 8
+#median: 14.5
+#mean: 14.5
+#max: 19
+#sd: NA
+hist_W1_proband_pipons<- ggplot(W1_Sam_proband, aes(x=pipons))+
+  geom_histogram(color="darkslategrey",fill="cyan3") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Pipe Onset by Sex") +
+  labs(x="PipOns", y="Count")
+hist_W1_proband_pipons
+```
+#chwcrit
+```{r}
+summary(W1_Sam_child$chwcrit)
+sd(W1_Sam_child$chwcrit)
+#min: 0
+#median: 0
+#mean: 0.11
+#max: 1
+#sd: 0.31
+hist_W1_proband_chwcrit<- ggplot(W1_Sam_proband, aes(x=chwcrit))+
+  geom_histogram(color="darkslategrey",fill="cyan3") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Chewing Tobacco Criteria by Sex") +
+  labs(x="ChwCrit", y="Count")
+hist_W1_proband_chwcrit
+```
+#chwcrit2
+```{r}
+summary(W1_Sam_child$chwcrit2)
+sd(W1_Sam_child$chwcrit2)
+#NA for all
+```
+#chwpeak
+```{r}
+summary(W1_Sam_child$chwpeak)
+sd(W1_Sam_child$chwpeak)
+#min: 0.5
+#median: 1
+#mean: 2.97
+#max: 40
+#sd: NA
+hist_W1_proband_chwpeak<- ggplot(W1_Sam_proband, aes(x=chwpeak))+
+  geom_histogram(color="darkslategrey",fill="cyan3") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Chewing Tobacco Peak by Sex") +
+  labs(x="ChwPeak", y="Count")
+hist_W1_proband_chwpeak
+```
+#chwcurr
+```{r}
+summary(W1_Sam_child$chwcurr)
+sd(W1_Sam_child$chwcurr)
+#NA for all
+```
+#chwfreq1
+```{r}
+summary(W1_Sam_child$chwfreq1)
+sd(W1_Sam_child$chwfreq1)
+#NA for all
+```
+#chwfreq2
+```{r}
+summary(W1_Sam_child$chwfreq2)
+sd(W1_Sam_child$chwfreq2)
+#NA for all
+```
+#chwons
+```{r}
+summary(W1_Sam_child$chwons)
+sd(W1_Sam_child$chwons)
+#min: 5
+#median: 14
+#mean: 13.91
+#max: 21
+#sd: NA
+hist_W1_proband_chwons<- ggplot(W1_Sam_proband, aes(x=chwons))+
+  geom_histogram(color="darkslategrey",fill="cyan3") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Chewing Tobacco Onset by Sex") +
+  labs(x="Chwons", y="Count")
+hist_W1_proband_chwons
+```
+
+*-------------------------------------------------------------
+*7: Descriptives for PROBAND USERS (probands who SMOKE only)*
+--------------------------------------------------------------*
+**TEST Descriptives
+```{r}
+length(W1_Sam_prob_test$ID)
+#607 proband test
+W1_Sam_prob_test$nsex <- factor(W1_Sam_prob_test$nsex) 
+W1_Sam_prob_test$nsex <- fct_recode(W1_Sam_prob_test$nsex, "female" = "0", "male" = "1")
+```
+#age
+```{r}
+summary(W1_Sam_prob_test$nage)
+sd(W1_Sam_prob_test$nage)
+#min: 12.95
+#median: 16.36
+#mean: 16.30
+#max: 19.71
+#sd: 1.205723
+```
+#cigcrit
+```{r}
+summary(W1_Sam_prob_test$cigcrit)
+sd(W1_Sam_prob_test$cigcrit)
+#min: 0
+#median: 1
+#mean: 0.827
+#max: 1
+#sd: 0.3785435
+```
+#cigcrit2 (Smoked 20 cigarettes lifetime? 0=didn't meet criterion, 1=met criterion)
+```{r}
+summary(W1_Sam_prob_test$cigcrit2)
+sd(W1_Sam_prob_test$cigcrit2)
+#NA for all
+```
+#cigpeak (How many cigarettes smoked per day when you were smoking most?)
+```{r}
+summary(W1_Sam_prob_test$cigpeak)
+sd(W1_Sam_prob_test$cigpeak)
+#min: 1
+#median: 20
+#mean: 20.21
+#max: 80
+#sd: NA
+```
+#cigcurr (In past 12 months, how many cigarettes usually smoked per day?)
+```{r}
+summary(W1_Sam_prob_test$cigcurr)
+sd(W1_Sam_prob_test$cigcurr)
+#NA for all
+```
+#cigfreq1 (Usual frequency of cigarette smoking in past 12 months)
+```{r}
+summary(W1_Sam_prob_test$cigfreq1)
+sd(W1_Sam_prob_test$cigfreq1)
+#NA for all
+```
+#cigfreq2 (Usual frequency of cigarette smoking when smoking most)
+```{r}
+summary(W1_Sam_prob_test$cigfreq2)
+sd(W1_Sam_prob_test$cigfreq2)
+#NA for all
+```
+#cigons (How old were you when you began smoking?)
+```{r}
+summary(W1_Sam_prob_test$cigons)
+sd(W1_Sam_prob_test$cigons)
+#min: 5
+#median: 12
+#mean: 11.88
+#max: 17
+#sd: NA
+```
+#cgrcrit (Ever smoked cigars almost every day for at least a month?)
+```{r}
+summary(W1_Sam_prob_test$cgrcrit)
+sd(W1_Sam_prob_test$cgrcrit)
+#min: 0
+#median: 0
+#mean: 0.05931
+#max: 1
+#sd: 0.2363952
+```
+#cgrcrit2 (Smoked more than 5 cigars in your life?)
+```{r}
+summary(W1_Sam_prob_test$cgrcrit2)
+sd(W1_Sam_prob_test$cgrcrit2)
+#NA for all
+```
+#cgrpeak (How many cigars did you smoke per day when you were smoking most?)
+```{r}
+summary(W1_Sam_prob_test$cgrpeak)
+sd(W1_Sam_prob_test$cgrpeak)
+#min: 1
+#median: 3
+#mean: 3.171
+#max: 10
+#sd: NA
+```
+#cgrcurr (In past 12 months, how many cigars usually smoked in a day?)
+```{r}
+summary(W1_Sam_prob_test$cgrcurr)
+sd(W1_Sam_prob_test$cgrcurr)
+#NA for all
+```
+#cgrfreq1 (Usual frequency of cigar smoking in past 12 months)
+```{r}
+summary(W1_Sam_prob_test$cgrfreq1)
+sd(W1_Sam_prob_test$cgrfreq1)
+#NA for all
+```
+#cgrfreq2 (Usual frequency of cigar smoking in period of heaviest cigar smoking)
+```{r}
+summary(W1_Sam_prob_test$cgrfreq2)
+sd(W1_Sam_prob_test$cgrfreq2)
+#NA for all
+```
+#cgrons (How old were you when you began smoking cigars?)
+```{r}
+summary(W1_Sam_prob_test$cgrons)
+sd(W1_Sam_prob_test$cgrons)
+#min: 10
+#median: 14
+#mean: 14.14
+#max: 18
+#sd: NA
+```
+#pipcrit (Ever smoked a pipe almost every day for at least a month?)
+```{r}
+summary(W1_Sam_prob_test$pipcrit)
+sd(W1_Sam_prob_test$pipcrit)
+#min: 0
+#median: 0
+#mean: 0.01318
+#max: 1
+#sd: 0.1141373
+```
+#pipcrit2 (Smoked tobacco in a pipe more than 5 times in your life?)
+```{r}
+summary(W1_Sam_prob_test$pipcrit2)
+sd(W1_Sam_prob_test$pipcrit2)
+#NA for all
+```
+#pippeak (How many pipefuls of tobacco per day when you were smoking most?)
+```{r}
+summary(W1_Sam_prob_test$pippeak)
+sd(W1_Sam_prob_test$pippeak)
+#min: 1
+#median: 6
+#mean: 8.125
+#max: 30
+#sd: NA
+```
+#pipcurr (IN past 12 months, how many pipefuls smoked in a day?)
+```{r}
+summary(W1_Sam_prob_test$pipcurr)
+sd(W1_Sam_prob_test$pipcurr)
+#NA for all
+```
+#pipfreq1 (Usual frequency of pipe smoking in past 12 months)
+```{r}
+summary(W1_Sam_prob_test$pipfreq1)
+sd(W1_Sam_prob_test$pipfreq1)
+#NA for all
+```
+#pipfreq2 (Usual frequency of pipe smoking in period of heaviest pipe smoking)
+```{r}
+summary(W1_Sam_prob_test$pipfreq2)
+sd(W1_Sam_prob_test$pipfreq2)
+#NA for all
+```
+#pipons (How old were you when you began to smoke a pipe?)
+```{r}
+summary(W1_Sam_prob_test$pipons)
+sd(W1_Sam_prob_test$pipons)
+#min: 12
+#median: 13
+#mean: 13.5
+#max: 16
+#sd: NA
+```
+#chwcrit (Have you ever used snuff or chewed tobacco {ALMOST EVERY DAY FOR AT LEAST A MONTH}?)
+```{r}
+summary(W1_Sam_prob_test$chwcrit)
+sd(W1_Sam_prob_test$chwcrit)
+#min: 0
+#median: 0
+#mean: 0.2372
+#max: 1
+#sd: 0.4257367
+```
+#chwcrit2 (Used snuff or chewed tobacco more than 5 times in your life?)
+```{r}
+summary(W1_Sam_prob_test$chwcrit2)
+sd(W1_Sam_prob_test$chwcrit2)
+#NA for all
+```
+#chwpeak (How many pouches of snuff/chews per day when you were using most?)
+```{r}
+summary(W1_Sam_prob_test$chwpeak)
+sd(W1_Sam_prob_test$chwpeak)
+#min: 0.5
+#median: 1
+#mean: 2.518
+#max: 40
+#sd: NA
+```
+#chwcurr (In past 12 months, how many pouches of snuff or chews used per day?)
+```{r}
+summary(W1_Sam_prob_test$chwcurr)
+sd(W1_Sam_prob_test$chwcurr)
+#NA for all
+```
+#chwfreq1 (Usual frequency of snuff/chew in past 12 months)
+```{r}
+summary(W1_Sam_prob_test$chwfreq1)
+sd(W1_Sam_prob_test$chwfreq1)
+#NA for all
+```
+#chwfreq2 (Usual frequency of snuff/chew during period of heaviest use)
+```{r}
+summary(W1_Sam_prob_test$chwfreq2)
+sd(W1_Sam_prob_test$chwfreq2)
+#NA for all
+```
+#chwons (How old were you when you began using tobacco or snuff?)
+```{r}
+summary(W1_Sam_prob_test$chwons)
+sd(W1_Sam_prob_test$chwons)
+#min: 5
+#median: 14
+#mean: 13.52
+#max: 17
+#sd: NA
+```
+**TEST Histograms
+#age
+```{r}
+hist_W1_prob_test_age<- ggplot(W1_Sam_prob_test, aes(x=nage))+
+  geom_histogram(color="darkslategrey",fill="cornflowerblue") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Test Age by Sex") +
+  labs(x="Age", y="Count")
+hist_W1_prob_test_age
+```
+#cigcrit
+```{r}
+hist_W1_prob_test_cigcrit<- ggplot(W1_Sam_prob_test, aes(x=cigcrit))+
+  geom_histogram(color="darkslategrey",fill="cornflowerblue") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Test Cigarette Criteria by Sex") +
+  labs(x="cigcrit", y="Count")
+hist_W1_prob_test_cigcrit
+```
+#cigpeak
+```{r}
+hist_W1_prob_test_cigpeak<- ggplot(W1_Sam_prob_test, aes(x=cigpeak))+
+  geom_histogram(color="darkslategrey",fill="cornflowerblue") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Test Cigarette Peak by Sex") +
+  labs(x="cigpeak", y="Count")
+hist_W1_prob_test_cigpeak
+```
+#cigons
+```{r}
+hist_W1_prob_test_cigons<- ggplot(W1_Sam_prob_test, aes(x=cigons))+
+  geom_histogram(color="darkslategrey",fill="cornflowerblue") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Test Cigarette Onset by Sex") +
+  labs(x="cigons", y="Count")
+hist_W1_prob_test_cigons
+```
+#cgrcrit
+```{r}
+hist_W1_prob_test_cgrcrit<- ggplot(W1_Sam_prob_test, aes(x=cgrcrit))+
+  geom_histogram(color="darkslategrey",fill="cornflowerblue") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Test Cigar Criteria by Sex") +
+  labs(x="cgrcrit", y="Count")
+hist_W1_prob_test_cgrcrit
+```
+#cgrpeak
+```{r}
+hist_W1_prob_test_cgrpeak<- ggplot(W1_Sam_prob_test, aes(x=cgrpeak))+
+  geom_histogram(color="darkslategrey",fill="cornflowerblue") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Test Cigar Peak by Sex") +
+  labs(x="cgrpeak", y="Count")
+hist_W1_prob_test_cgrpeak
+```
+#cgrons
+```{r}
+hist_W1_prob_test_cgrons<- ggplot(W1_Sam_prob_test, aes(x=cgrons))+
+  geom_histogram(color="darkslategrey",fill="cornflowerblue") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Test Cigar Onset by Sex") +
+  labs(x="cgrons", y="Count")
+hist_W1_prob_test_cgrons
+```
+#pipcrit
+```{r}
+hist_W1_prob_test_pipcrit<- ggplot(W1_Sam_prob_test, aes(x=pipcrit))+
+  geom_histogram(color="darkslategrey",fill="cornflowerblue") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Test Pipe Criteria by Sex") +
+  labs(x="pipcrit", y="Count")
+hist_W1_prob_test_pipcrit
+```
+#pippeak
+```{r}
+hist_W1_prob_test_pippeak<- ggplot(W1_Sam_prob_test, aes(x=pippeak))+
+  geom_histogram(color="darkslategrey",fill="cornflowerblue") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Test Pipe Peak by Sex") +
+  labs(x="pippeak", y="Count")
+hist_W1_prob_test_pippeak
+```
+#pipons
+```{r}
+hist_W1_prob_test_pipons<- ggplot(W1_Sam_prob_test, aes(x=pipons))+
+  geom_histogram(color="darkslategrey",fill="cornflowerblue") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Test Pipe Onset by Sex") +
+  labs(x="pipons", y="Count")
+hist_W1_prob_test_pipons
+```
+#chwcrit
+```{r}
+hist_W1_prob_test_chwcrit<- ggplot(W1_Sam_prob_test, aes(x=chwcrit))+
+  geom_histogram(color="darkslategrey",fill="cornflowerblue") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Test Chewing Tobacco Criteria by Sex") +
+  labs(x="chwcrit", y="Count")
+hist_W1_prob_test_chwcrit
+```
+#chwpeak
+```{r}
+hist_W1_prob_test_chwpeak<- ggplot(W1_Sam_prob_test, aes(x=chwpeak))+
+  geom_histogram(color="darkslategrey",fill="cornflowerblue") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Test Chewing Tobacco Peak by Sex") +
+  labs(x="chwpeak", y="Count")
+hist_W1_prob_test_chwpeak
+```
+#chwons
+```{r}
+hist_W1_prob_test_chwons<- ggplot(W1_Sam_prob_test, aes(x=chwons))+
+  geom_histogram(color="darkslategrey",fill="cornflowerblue") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Test Chewing Tobacco Onset by Sex") +
+  labs(x="chwons", y="Count")
+hist_W1_prob_test_chwons
+```
+
+**CONTROL Descriptives
+```{r}
+length(W1_Sam_prob_control$ID)
+#401 proband control
+W1_Sam_prob_control$nsex <- factor(W1_Sam_prob_control$nsex) 
+W1_Sam_prob_control$nsex <- fct_recode(W1_Sam_prob_control$nsex, "female" = "0", "male" = "1")
+```
+#age
+```{r}
+summary(W1_Sam_prob_control$nage)
+sd(W1_Sam_prob_control$nage)
+#min: 11.66
+#median: 16.56
+#mean: 16.46
+#max: 21.05
+#sd: 1.497237
+```
+#cigcrit
+```{r}
+summary(W1_Sam_prob_control$cigcrit)
+sd(W1_Sam_prob_control$cigcrit)
+#min: 0
+#median: 0
+#mean: 0.1521
+#max: 1
+#sd: 0.3595855
+```
+#cigcrit2 (Smoked 20 cigarettes lifetime? 0=didn't meet criterion, 1=met criterion)
+```{r}
+summary(W1_Sam_prob_control$cigcrit2)
+sd(W1_Sam_prob_control$cigcrit2)
+#NA for all
+```
+#cigpeak (How many cigarettes smoked per day when you were smoking most?)
+```{r}
+summary(W1_Sam_prob_control$cigpeak)
+sd(W1_Sam_prob_control$cigpeak)
+#min: 1
+#median: 10
+#mean: 12.25
+#max: 45
+#sd: NA
+```
+#cigcurr (In past 12 months, how many cigarettes usually smoked per day?)
+```{r}
+summary(W1_Sam_prob_control$cigcurr)
+sd(W1_Sam_prob_control$cigcurr)
+#NA for all
+```
+#cigfreq1 (Usual frequency of cigarette smoking in past 12 months)
+```{r}
+summary(W1_Sam_prob_control$cigfreq1)
+sd(W1_Sam_prob_control$cigfreq1)
+#NA for all
+```
+#cigfreq2 (Usual frequency of cigarette smoking when smoking most)
+```{r}
+summary(W1_Sam_prob_control$cigfreq2)
+sd(W1_Sam_prob_control$cigfreq2)
+#NA for all
+```
+#cigons (How old were you when you began smoking?)
+```{r}
+summary(W1_Sam_prob_control$cigons)
+sd(W1_Sam_prob_control$cigons)
+#min: 9
+#median: 14
+#mean: 13.5
+#max: 17
+#sd: NA
+```
+#cgrcrit (Ever smoked cigars almost every day for at least a month?)
+```{r}
+summary(W1_Sam_prob_control$cgrcrit)
+sd(W1_Sam_prob_control$cgrcrit)
+#min: 0
+#median: 0
+#mean: 0.01247
+#max: 1
+#sd: 0.1111042
+```
+#cgrcrit2 (Smoked more than 5 cigars in your life?)
+```{r}
+summary(W1_Sam_prob_control$cgrcrit2)
+sd(W1_Sam_prob_control$cgrcrit2)
+#NA for all
+```
+#cgrpeak (How many cigars did you smoke per day when you were smoking most?)
+```{r}
+summary(W1_Sam_prob_control$cgrpeak)
+sd(W1_Sam_prob_control$cgrpeak)
+#min: 1
+#median: 1
+#mean: 1.2
+#max: 2
+#sd: NA
+```
+#cgrcurr (In past 12 months, how many cigars usually smoked in a day?)
+```{r}
+summary(W1_Sam_prob_control$cgrcurr)
+sd(W1_Sam_prob_control$cgrcurr)
+#NA for all
+```
+#cgrfreq1 (Usual frequency of cigar smoking in past 12 months)
+```{r}
+summary(W1_Sam_prob_control$cgrfreq1)
+sd(W1_Sam_prob_control$cgrfreq1)
+#NA for all
+```
+#cgrfreq2 (Usual frequency of cigar smoking in period of heaviest cigar smoking)
+```{r}
+summary(W1_Sam_prob_control$cgrfreq2)
+sd(W1_Sam_prob_control$cgrfreq2)
+#NA for all
+```
+#cgrons (How old were you when you began smoking cigars?)
+```{r}
+summary(W1_Sam_prob_control$cgrons)
+sd(W1_Sam_prob_control$cgrons)
+#min: 12
+#median: 14
+#mean: 14.4
+#max: 17
+#sd: NA
+```
+#pipcrit (Ever smoked a pipe almost every day for at least a month?)
+```{r}
+summary(W1_Sam_prob_control$pipcrit)
+sd(W1_Sam_prob_control$pipcrit)
+#min: 0
+#median: 0
+#mean: 0.009975
+#max: 1
+#sd: 0.0995
+```
+#pipcrit2 (Smoked tobacco in a pipe more than 5 times in your life?)
+```{r}
+summary(W1_Sam_prob_control$pipcrit2)
+sd(W1_Sam_prob_control$pipcrit2)
+#NA for all
+```
+#pippeak (How many pipefuls of tobacco per day when you were smoking most?)
+```{r}
+summary(W1_Sam_prob_control$pippeak)
+sd(W1_Sam_prob_control$pippeak)
+#min: 1
+#median: 1
+#mean: 1.333
+#max: 2
+#sd: NA
+```
+#pipcurr (IN past 12 months, how many pipefuls smoked in a day?)
+```{r}
+summary(W1_Sam_prob_control$pipcurr)
+sd(W1_Sam_prob_control$pipcurr)
+#NA for all
+```
+#pipfreq1 (Usual frequency of pipe smoking in past 12 months)
+```{r}
+summary(W1_Sam_prob_control$pipfreq1)
+sd(W1_Sam_prob_control$pipfreq1)
+#NA for all
+```
+#pipfreq2 (Usual frequency of pipe smoking in period of heaviest pipe smoking)
+```{r}
+summary(W1_Sam_prob_control$pipfreq2)
+sd(W1_Sam_prob_control$pipfreq2)
+#NA for all
+```
+#pipons (How old were you when you began to smoke a pipe?)
+```{r}
+summary(W1_Sam_prob_control$pipons)
+sd(W1_Sam_prob_control$pipons)
+#min: 16
+#median: 18
+#mean: 17.33
+#max: 18
+#sd: NA
+```
+#chwcrit (Have you ever used snuff or chewed tobacco {ALMOST EVERY DAY FOR AT LEAST A MONTH}?)
+```{r}
+summary(W1_Sam_prob_control$chwcrit)
+sd(W1_Sam_prob_control$chwcrit)
+#min: 0
+#median: 0
+#mean: 0.03741
+#max: 1
+#sd: 0.1899928
+```
+#chwcrit2 (Used snuff or chewed tobacco more than 5 times in your life?)
+```{r}
+summary(W1_Sam_prob_control$chwcrit2)
+sd(W1_Sam_prob_control$chwcrit2)
+#NA for all
+```
+#chwpeak (How many pouches of snuff/chews per day when you were using most?)
+```{r}
+summary(W1_Sam_prob_control$chwpeak)
+sd(W1_Sam_prob_control$chwpeak)
+#min: 1
+#median: 2
+#mean: 3.733
+#max: 16
+#sd: NA
+```
+#chwcurr (In past 12 months, how many pouches of snuff or chews used per day?)
+```{r}
+summary(W1_Sam_prob_control$chwcurr)
+sd(W1_Sam_prob_control$chwcurr)
+#NA for all
+```
+#chwfreq1 (Usual frequency of snuff/chew in past 12 months)
+```{r}
+summary(W1_Sam_prob_control$chwfreq1)
+sd(W1_Sam_prob_control$chwfreq1)
+#NA for all
+```
+#chwfreq2 (Usual frequency of snuff/chew during period of heaviest use)
+```{r}
+summary(W1_Sam_prob_control$chwfreq2)
+sd(W1_Sam_prob_control$chwfreq2)
+#NA for all
+```
+#chwons (How old were you when you began using tobacco or snuff?)
+```{r}
+summary(W1_Sam_prob_control$chwons)
+sd(W1_Sam_prob_control$chwons)
+#min: 11
+#median: 14
+#mean: 14.47
+#max: 17
+#sd: NA
+```
+**TEST Histograms
+#age
+```{r}
+hist_W1_prob_control_age<- ggplot(W1_Sam_prob_control, aes(x=nage))+
+  geom_histogram(color="darkslategrey",fill="palevioletred1") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Control Age by Sex") +
+  labs(x="Age", y="Count")
+hist_W1_prob_control_age
+```
+#cigcrit
+```{r}
+hist_W1_prob_control_cigcrit<- ggplot(W1_Sam_prob_control, aes(x=cigcrit))+
+  geom_histogram(color="darkslategrey",fill="palevioletred1") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Control Cigarette Criteria by Sex") +
+  labs(x="cigcrit", y="Count")
+hist_W1_prob_control_cigcrit
+```
+#cigpeak
+```{r}
+hist_W1_prob_control_cigpeak<- ggplot(W1_Sam_prob_control, aes(x=cigpeak))+
+  geom_histogram(color="darkslategrey",fill="palevioletred1") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Control Cigarette Peak by Sex") +
+  labs(x="cigpeak", y="Count")
+hist_W1_prob_control_cigpeak
+```
+#cigons
+```{r}
+hist_W1_prob_control_cigons<- ggplot(W1_Sam_prob_control, aes(x=cigons))+
+  geom_histogram(color="darkslategrey",fill="palevioletred1") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Control Cigarette Onset by Sex") +
+  labs(x="cigons", y="Count")
+hist_W1_prob_control_cigons
+```
+#cgrcrit
+```{r}
+hist_W1_prob_control_cgrcrit<- ggplot(W1_Sam_prob_control, aes(x=cgrcrit))+
+  geom_histogram(color="darkslategrey",fill="palevioletred1") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Control Cigar Criteria by Sex") +
+  labs(x="cgrcrit", y="Count")
+hist_W1_prob_control_cgrcrit
+```
+#cgrpeak
+```{r}
+hist_W1_prob_control_cgrpeak<- ggplot(W1_Sam_prob_control, aes(x=cgrpeak))+
+  geom_histogram(color="darkslategrey",fill="palevioletred1") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Control Cigar Peak by Sex") +
+  labs(x="cgrpeak", y="Count")
+hist_W1_prob_control_cgrpeak
+```
+#cgrons
+```{r}
+hist_W1_prob_control_cgrons<- ggplot(W1_Sam_prob_control, aes(x=cgrons))+
+  geom_histogram(color="darkslategrey",fill="palevioletred1") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Control Cigar Onset by Sex") +
+  labs(x="cgrons", y="Count")
+hist_W1_prob_control_cgrons
+```
+#pipcrit
+```{r}
+hist_W1_prob_control_pipcrit<- ggplot(W1_Sam_prob_control, aes(x=pipcrit))+
+  geom_histogram(color="darkslategrey",fill="palevioletred1") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Control Pipe Criteria by Sex") +
+  labs(x="pipcrit", y="Count")
+hist_W1_prob_control_pipcrit
+```
+#pippeak
+```{r}
+hist_W1_prob_control_pippeak<- ggplot(W1_Sam_prob_control, aes(x=pippeak))+
+  geom_histogram(color="darkslategrey",fill="palevioletred1") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Control Pipe Peak by Sex") +
+  labs(x="pippeak", y="Count")
+hist_W1_prob_control_pippeak
+```
+#pipons
+```{r}
+hist_W1_prob_control_pipons<- ggplot(W1_Sam_prob_control, aes(x=pipons))+
+  geom_histogram(color="darkslategrey",fill="palevioletred1") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Control Pipe Onset by Sex") +
+  labs(x="pipons", y="Count")
+hist_W1_prob_control_pipons
+```
+#chwcrit
+```{r}
+hist_W1_prob_control_chwcrit<- ggplot(W1_Sam_prob_control, aes(x=chwcrit))+
+  geom_histogram(color="darkslategrey",fill="palevioletred1") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Control Chewing Tobacco Criteria by Sex") +
+  labs(x="chwcrit", y="Count")
+hist_W1_prob_control_chwcrit
+```
+#chwpeak
+```{r}
+hist_W1_prob_control_chwpeak<- ggplot(W1_Sam_prob_control, aes(x=chwpeak))+
+  geom_histogram(color="darkslategrey",fill="palevioletred1") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Control Chewing Tobacco Peak by Sex") +
+  labs(x="chwpeak", y="Count")
+hist_W1_prob_control_chwpeak
+```
+#chwons
+```{r}
+hist_W1_prob_control_chwons<- ggplot(W1_Sam_prob_control, aes(x=chwons))+
+  geom_histogram(color="darkslategrey",fill="palevioletred1") +
+  facet_wrap(~nsex) +
+  labs(title = "W1 CIDI-SAM Proband Control Chewing Tobacco Onset by Sex") +
+  labs(x="chwons", y="Count")
+hist_W1_prob_control_chwons
