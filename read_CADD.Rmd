@@ -1,0 +1,745 @@
+---
+title: "read_CADD"
+author: "PNR"
+date: "7/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+*--------
+## *0: Setup*
+---------*
+
+**0.0: Install packages needed**
+------------------------------**
+```{r Install Packages, eval=FALSE, include=FALSE}
+#once: 
+install.packages('tidyverse')
+install.packages("Hmisc") #to read por files
+install.packages("haven") #to read por files
+install.packages("modeest")
+install.packages('memisc') #to read codebooks
+install.packages("ggplot2") #to plot 
+# install.packages("pandas") #package ‘pandas’ is not available (for R version 4.0.0)
+install.packages("rquery") #to merge instruments by wave using SQL functions
+install.packages("rqdatatable") #to merge instruments by wave using SQL functions
+```
+
+```{r Read Packages, include=FALSE}
+#every time: 
+library(readr)
+library(tidyverse)
+library(haven)
+library(ggplot2)
+require("Hmisc")
+require("memisc")
+library("rquery")
+  # https://www.rdocumentation.org/packages/rquery/versions/1.4.4
+library(rqdatatable)
+```
+
+-----------------------------
+  *1: Read in datasets*
+------------------------------
+
+<!-- #W1 CADD Qs are questionnaire data directly filled out by the subjects.  In terms of your interests, that would only represent a set of Monitoring the Future  -->
+<!--   # questions. --Robin Jul/08/20 -->
+<!-- # W1_all <- spss.get("W1CADD_Qs_02-Mar-2017.por") -->
+<!-- # # Translate .por files -->
+<!-- # W1_all <- spss.portable.file("W1CADD_Qs_02-Mar-2017.por") -->
+<!-- # # Write metadata and descriptives to text file: -->
+<!-- # write.csv(as.matrix(description(W1_all)), "descriptions.csv") -->
+<!-- # capture.output(codebook(W1_all), file = "codebook.txt") -->
+
+Read Wave 1 (1993-2004):  
+--------------------------------------
+```{r Read Wave 1}
+#Supplements: 
+W1_Supps <- spss.get("CADD1_supplements.por")
+  #This is the Wave 1 version of the Lyons, SAM, CD, and ASPD supplements (1993-2004)
+
+#SAM: 
+W1_Sam <- read.csv("Wave1SAMvars.csv")
+
+#Family History: 
+W1_fhist <- spss.get("w1fhist.por")
+
+#DIS: 
+W1_Dis_Dsm4 <- spss.get("DIS4_Dec07.por") 
+
+W1_Dis_Dsm3R <- spss.get("DIS3R_Dec07.por") 
+  #This is an SPSS Export file with DIS scoring using DSM-IIIR on data collected between 1997 & Aug. 2002 
+
+#DISC: 
+W1_Disc_Dsm4 <- spss.get("disc4tot_Nov07.por") 
+  #These are scale scores from the paper-and-pencil administered DISC4
+
+W1_Disc_Dsm3R <- spss.get("disc3rtot_Nov07.por") 
+  #This is the scale score file for the paper-and-pencil DISC4, scored using DSM-IIIR algorithms.
+
+#MTF: Monitoring the Future: 
+#W1_Mtf <- spss.get("CADD_Qs_04-Aug-2015.por")
+  #First version of combined CADD questionnaires
+```
+
+
+Merge all wave 1 :
+--------------------------------------
+
+```{r}
+#SAM-fhist: 
+# W1_all <- merge(W1_Sam, W1_fhist, by.x="iid", by.y = "ID")
+# 
+# W1_all <- merge(W1_all, W1_Supps, by.x="iid", by.y = "ID", all.y=FALSE)
+# # col_x <- colnames(W1_all)
+# # col_y <- colnames(W1_Supps)
+# # col_dups <- col_x %in% col_y
+# W1_all = W1_all[,-col_dups]
+
+#SAM: 
+colnames(W1_Sam)[colnames(W1_Sam) == "iid"] <- "ID"
+colnames(W1_Sam)[colnames(W1_Sam) == "nidaid"] <- "NIDAID"
+colnames(W1_Sam)[colnames(W1_Sam) == "sex"] <- "SEX"
+```
+
+```{r Merge W1 DIS's}
+### Merge DIS ### 
+  #rename common columns in DSM-3R: 
+colnames(W1_Dis_Dsm3R)[colnames(W1_Dis_Dsm3R) == "iid"] <- "ID"
+colnames(W1_Dis_Dsm3R)[colnames(W1_Dis_Dsm3R) == "nidaid"] <- "NIDAID"
+colnames(W1_Dis_Dsm3R)[colnames(W1_Dis_Dsm3R) == "sex"] <- "SEX"
+
+  #rename common columns in DSM-4: 
+colnames(W1_Dis_Dsm4)[colnames(W1_Dis_Dsm4) == "iid"] <- "ID"
+colnames(W1_Dis_Dsm4)[colnames(W1_Dis_Dsm4) == "nidaid"] <- "NIDAID"
+colnames(W1_Dis_Dsm4)[colnames(W1_Dis_Dsm4) == "sex"] <- "SEX"
+
+  #merge DIS assessments: 
+W1_all <- natural_join(W1_Dis_Dsm3R, W1_Dis_Dsm4,by='ID',jointype="FULL")
+
+W1_Dis_all <- natural_join(W1_Dis_Dsm4, W1_Dis_Dsm3R,by='ID',jointype="FULL")
+```
+
+```{r Merge W1 DISC's}
+### Merge DISC ### 
+  #rename common columns in DSM-3R: 
+colnames(W1_Disc_Dsm3R)[colnames(W1_Disc_Dsm3R) == "iid"] <- "ID"
+colnames(W1_Disc_Dsm3R)[colnames(W1_Disc_Dsm3R) == "nidaid"] <- "NIDAID"
+colnames(W1_Disc_Dsm3R)[colnames(W1_Disc_Dsm3R) == "sex"] <- "SEX"
+
+  #rename common columns in DSM-4: 
+colnames(W1_Disc_Dsm4)[colnames(W1_Disc_Dsm4) == "iid"] <- "ID"
+colnames(W1_Disc_Dsm4)[colnames(W1_Disc_Dsm4) == "nidaid"] <- "NIDAID"
+colnames(W1_Disc_Dsm4)[colnames(W1_Disc_Dsm4) == "sex"] <- "SEX"
+
+  #merge DIS assessments: 
+W1_all <- natural_join(W1_all, W1_Disc_Dsm3R,by='ID',jointype="FULL")
+
+W1_all <- natural_join(W1_Disc_Dsm4, W1_all,by='ID',jointype="FULL")
+
+W1_Disc_all <- natural_join(W1_Disc_Dsm4, W1_Disc_Dsm3R,by='ID',jointype="FULL")
+```
+
+```{r Merge W1 Family History}
+#NOTE: might not want to merge fhist, because it interviews multiple people in same family. 
+
+#NOT WORKING
+  #rename common columns in famhist: 
+colnames(W1_fhist)[colnames(W1_fhist) == "iid"] <- "ID"
+colnames(W1_fhist)[colnames(W1_fhist) == "nidaid"] <- "NIDAID"
+colnames(W1_fhist)[colnames(W1_fhist) == "sex"] <- "SEX"
+
+  #Merge famhist: 
+#W1_all <- natural_join(W1_fhist,W1_all,by='ID',jointype="FULL")
+
+```
+
+```{r Merge W1 SAM}
+# Merge SAM: NOTE: NOT WORKING
+  #rename common columns in SAM: 
+colnames(W1_Sam)[colnames(W1_Sam) == "iid"] <- "ID"
+colnames(W1_Sam)[colnames(W1_Sam) == "nidaid"] <- "NIDAID"
+colnames(W1_Sam)[colnames(W1_Sam) == "sex"] <- "SEX"
+
+  #Merge SAM:
+#W1_all <- natural_join(W1_all, W1_Sam, by="ID",jointype="FULL")
+  #Error in rbindlist(l, use.names, fill, idcol) : Class attribute on column 116 of item 2 does not match with column 116 of item 1
+```
+```{r Merge W1 Supps}
+# Merge Supps:
+  #rename common columns in Supps: 
+colnames(W1_Supps)[colnames(W1_Supps) == "iid"] <- "ID"
+colnames(W1_Supps)[colnames(W1_Supps) == "nidaid"] <- "NIDAID"
+colnames(W1_Supps)[colnames(W1_Supps) == "sex"] <- "SEX"
+
+  #Merge Supps:
+W1_all <- natural_join(W1_all, W1_Supps, by="ID",jointype="FULL")
+```
+
+```{r}
+# W1_all <- merge(W1_all, W1_Dis_Dsm3R, by.x="iid", by.y = "ID")
+# W1_all <- merge(W1_all, W1_Dis_Dsm4, by.x="iid", by.y ="ID", by.x="PROJECT", by.y="PROJECT", by.x="AFAMILY", by.y="AFAMILY", by.x="NIDAID",  all.y=FALSE) 
+```
+
+Wave 1: Get codebooks: 
+-----------------------
+```{r}
+# Write metadata and descriptives to text file:
+# require("memisc")
+# write.csv(as.matrix(description(W1_Disc_Dsm3R)), "descriptions.csv")
+# capture.output(codebook(W1_Disc_Dsm3R), file = "codebook.txt")
+```
+
+
+Wave 2: Read in Datasets
+--------------------
+```{r Read W2 }
+#Supplements: 
+  #This is the Wave 1 version of the Lyons, SAM, CD, and ASPD supplements (1993-2004)
+
+#SAM: 
+W2_Sam <- read.csv("Wave2SAMvars.csv")
+
+#Family History: 
+W2_fhist <- spss.get("w2fhist.por")
+
+#DIS: 
+W2_Dis_Dsm4 <- spss.get("NewDIS_Feb09.por") 
+  #only DSM-4 available for DIS in wave 2, no DSM-3R
+
+W2_Disc_Dsm4 <- spss.get("NewDISC_Nov2017.por") 
+  #This is the CADD computerized DISC data file with both items and scales.
+  #only DSM-4 available for DISC in wave 2, no DSM-3R
+
+#MTF: Monitoring the Future: 
+#W1_Mtf <- spss.get("CADD_Qs_04-Aug-2015.por")
+  #First version of combined CADD questionnaires
+
+##Merge all wave 2 
+#W2_all <- merge(W2_Sam, W2_all, by.x="ID", by.y = "ID")
+
+#PNR DONE: Finish adding all instruments with nicotine data: Commented out the MTF ones because they are the main/basic CADD questionnaire with few nicotine questions and they were breaking my script when running in R cloud. 
+
+#PNR NOTE: Do NOT merge waves together, 
+#PNR TODO: merge by instrument 
+  #all instruments should have same N's, but can vary by wave
+```
+
+
+Merge wave 2: 
+--------------------------------------
+
+```{r}
+#SAM-fhist: 
+# W1_all <- merge(W1_Sam, W1_fhist, by.x="iid", by.y = "ID")
+# 
+# W1_all <- merge(W1_all, W1_Supps, by.x="iid", by.y = "ID", all.y=FALSE)
+# # col_x <- colnames(W1_all)
+# # col_y <- colnames(W1_Supps)
+# # col_dups <- col_x %in% col_y
+# W1_all = W1_all[,-col_dups]
+
+#SAM: 
+colnames(W2_Sam)[colnames(W2_Sam) == "iid"] <- "ID"
+colnames(W2_Sam)[colnames(W2_Sam) == "nidaid"] <- "NIDAID"
+colnames(W2_Sam)[colnames(W2_Sam) == "sex"] <- "SEX"
+```
+
+```{r Merge W2 DIS's}
+### Merge DIS ### 
+  #No DSM-3R
+
+  #rename common columns in DSM-4: 
+colnames(W2_Dis_Dsm4)[colnames(W2_Dis_Dsm4) == "iid"] <- "ID"
+colnames(W2_Dis_Dsm4)[colnames(W2_Dis_Dsm4) == "nidaid"] <- "NIDAID"
+colnames(W2_Dis_Dsm4)[colnames(W2_Dis_Dsm4) == "sex"] <- "SEX"
+
+  #merge DIS assessments: 
+W2_all <- W2_Dis_Dsm4
+```
+
+```{r Merge W2 DISC's}
+### Merge DISC ### 
+  #No DSM-3R
+
+  #rename common columns in DSM-4: 
+colnames(W2_Disc_Dsm4)[colnames(W2_Disc_Dsm4) == "iid"] <- "ID"
+colnames(W2_Disc_Dsm4)[colnames(W2_Disc_Dsm4) == "nidaid"] <- "NIDAID"
+colnames(W2_Disc_Dsm4)[colnames(W2_Disc_Dsm4) == "sex"] <- "SEX"
+
+  #merge DIS assessments: 
+W2_all <- natural_join(W2_Disc_Dsm4, W2_all,by='ID',jointype="FULL")
+```
+
+```{r Merge W2 Family History}
+### Merge FamHist ### 
+
+#NOTE: might not want to merge fhist, because it interviews multiple people in same families. 
+
+#NOTE: NOT MERGED: error: trying to merge famhist crashes the R session. 
+
+  #rename common columns in famhist: 
+colnames(W2_fhist)[colnames(W2_fhist) == "iid"] <- "ID"
+colnames(W2_fhist)[colnames(W2_fhist) == "nidaid"] <- "NIDAID"
+colnames(W2_fhist)[colnames(W2_fhist) == "sex"] <- "SEX"
+
+#   #Merge famhist: 
+# W2_all <- natural_join(W2_fhist,W2_all,by='ID',jointype="FULL")
+```
+
+```{r Merge W2 SAM}
+# Merge SAM: NOTE: NOT WORKING
+  #rename common columns in SAM: 
+colnames(W2_Sam)[colnames(W2_Sam) == "iid"] <- "ID"
+colnames(W2_Sam)[colnames(W2_Sam) == "nidaid"] <- "NIDAID"
+colnames(W2_Sam)[colnames(W2_Sam) == "sex"] <- "SEX"
+
+  #Merge SAM:
+#W2_all <- natural_join(W2_all, W2_Sam, by="ID",jointype="FULL")
+  #Error in rbindlist(l, use.names, fill, idcol) : Class attribute on column 116 of item 2 does not match with column 116 of item 1
+```
+
+```{r Merge W2 Supps}
+# Merge Supps:
+
+#NOTE: Supps for both waves is in W1_Supps
+```
+
+*---------------------------------------------------------
+*2: Notes on how sample coded parent, proband, sister, & brother*
+--------------------------------------------------------*
+
+#This is how children (probands and siblings) are coded: 
+  #JS DONE: write out here for reference how probands and siblings are coded to be able to distinguish them in the script. 
+  
+#NOTE: https://ibg.colorado.edu/dokuwiki/doku.php?id=center:information:history:cadd
+
+  #CAP ID Structure: xxxyz
+xxx = sequence of adoptive family enrollment
+y = gender & relationship; for gender odd numbers = male, even = female
+z = status; 1 = birth parents & children; 2 = adoptive parents & children; 3 = controls
+
+  #Family Study Codes (Pg 11) Drug Center Study **USE THESE FOR NOW**
+Column 1-4: Family Identification number
+Column 5-6: Relationship to proband -
+  00 proband; 01 father; 02 mother; 03  
+  brother; 04 sister
+Column 7: Birth Order -
+  0 = parents; 1-9 birth order
+Column 8: Sex - 1 = male, 2 = female
+Column 9: Synergy or Control - S = Synergy (treatment), C 
+  = Control
+  
+  #CAP FADNUMBERS (Pg 13): Colorado Adoption Project: probably don't have any of these 
+Column 1-3: Family Identification Number
+Column 4: Sex and Position 
+  1 = father; 2 = mother; 3 = male proband; 4 
+  = female proband; 5,7,9 = male sibling; 
+  6,8,0 = female sibling
+
+  #LTS FADNUMBER SYSTEM (Pg 9): longitudinal twin sample: 
+Column 1-3: Family Identification Number
+Column 4: Family Position - 1 = Twin 1; 2 = 
+  Twin 2; 3 = parents; 9 = sibling
+Column 5: Gender - 0 = female; 1 = male
+
+  #CTS FADNUMBER SYSTEM (Pg 8): community twin sample: 
+Column 1-5: Family Identification Number
+Column 6: Family Position - 1 = Twin 1; 2 = 
+  Twin 2; 3 = parents; 9 = sibling
+Column 5: Gender - 0 = female; 1 = male 
+
+
+**2.0: Resources consulted for regex
+-------------------------------------**
+
+regex's in r: https://stat.ethz.ch/R-manual/R-devel/library/base/html/regex.html
+
+regex to match character in specific position: https://stackoverflow.com/questions/34789929/regex-to-match-character-in-specific-position
+
+Using regexp to select rows in R dataframe: https://stackoverflow.com/questions/9520840/using-regexp-to-select-rows-in-r-dataframe/9521239#9521239
+
+2.1A: Construct logical index of matches using grepl: 
+  #NOTE: these return a logical vector (true or false for each subject, they're not the sub-dataset)
+  
+
+W1_Sam_indexes
+------------ 
+```{r W1_Sam_indexes}
+W1_Sam_proband_index <- with(W1_Sam, grepl("^\\d{4}00\\d{2}\\D{1}$", W1_Sam$ID))
+  # "^" = start of string 
+  # "\" = avoid the escape character
+  # \d = digit 
+  #{4} = looking for 4 digits in positions 1-4 of string
+  # 00 = looking for '00' at excactly positions 5-6 
+  # \d = digit 
+  #{2} = looking for 2 more digits after '00' in positions 7-8 of string 
+  # \D = looking for 1 non-digit (so a letter or special character)
+
+W1_Sam_bro_index <- with(W1_Sam, grepl("^\\d{4}03\\d{2}\\D{1}$", W1_Sam$ID))
+
+W1_Sam_sis_index <- with(W1_Sam, grepl("^\\d{4}04\\d{2}\\D{1}$", W1_Sam$ID))
+```
+
+
+W1_fhist_index
+------------
+```{r W1_fhist_indexes}
+W1_fhist_proband_index <- with(W1_fhist, grepl("^\\d{4}00\\d{2}\\D{1}$", W1_fhist$ID))
+
+W1_fhist_bro_index <- with(W1_fhist, grepl("^\\d{4}03\\d{2}\\D{1}$", W1_fhist$ID))
+
+W1_fhist_sis_index <- with(W1_fhist, grepl("^\\d{4}04\\d{2}\\D{1}$", W1_fhist$ID))
+```
+
+W1_all_index
+------------
+```{r W1_all_indexes}
+W1_all_proband_index <- with(W1_all, grepl("^\\d{4}00\\d{2}\\D{1}$", W1_all$ID))
+
+W1_all_bro_index <- with(W1_all, grepl("^\\d{4}03\\d{2}\\D{1}$", W1_all$ID))
+
+W1_all_sis_index <- with(W1_all, grepl("^\\d{4}04\\d{2}\\D{1}$", W1_all$ID))
+```
+
+W2_Sam_indexes
+------------
+  
+```{r}
+W2_Sam_proband_index <- with(W2_Sam, grepl("^\\d{4}00\\d{2}\\D{1}$", W2_Sam$ID))
+
+W2_Sam_bro_index <- with(W2_Sam, grepl("^\\d{4}03\\d{2}\\D{1}$", W2_Sam$ID))
+
+W2_Sam_sis_index <- with(W2_Sam, grepl("^\\d{4}04\\d{2}\\D{1}$", W2_Sam$ID))
+```
+
+W2_fhist_index
+------------
+```{r}
+W2_fhist_proband_index <- with(W2_fhist, grepl("^\\d{4}00\\d{2}\\D{1}$", W2_fhist$ID))
+
+W2_fhist_bro_index <- with(W2_fhist, grepl("^\\d{4}03\\d{2}\\D{1}$", W2_fhist$ID))
+
+W2_fhist_sis_index <- with(W2_fhist, grepl("^\\d{4}04\\d{2}\\D{1}$", W2_fhist$ID))
+```
+
+W2_all_index
+------------
+```{r W2_index_indexes}
+W2_all_proband_index <- with(W2_all, grepl("^\\d{4}00\\d{2}\\D{1}$", W2_all$ID))
+
+W2_all_bro_index <- with(W2_all, grepl("^\\d{4}03\\d{2}\\D{1}$", W2_all$ID))
+
+W2_all_sis_index <- with(W2_all, grepl("^\\d{4}04\\d{2}\\D{1}$", W2_all$ID))
+```
+
+
+-------------------------------------------------------------
+*3: Make Child, Proband, Proband Users, & Cases versus Controls Subsets*
+--------------------------------------------------------------
+
+W1_Sam_child
+------------
+```{r}
+#only children (probands + siblings)
+W1_Sam_child <- W1_Sam[W1_Sam_proband_index | W1_Sam_bro_index | W1_Sam_sis_index,]
+```
+
+W1_all_child
+------------
+```{r}
+#only children (probands + siblings)
+W1_all_child <- W1_all[W1_all_proband_index | W1_all_bro_index | W1_all_sis_index,]
+```
+
+W1_fhist_child
+------------
+```{r}
+#only children (probands + siblings)
+W1_fhist_child <- W1_fhist[W1_fhist_proband_index | W1_fhist_bro_index | W1_fhist_sis_index,]
+```
+
+
+W2_Sam_child
+------------
+```{r}
+#only children (probands + siblings)
+W2_Sam_child <- W2_Sam[W2_Sam_proband_index | W2_Sam_bro_index | W2_Sam_sis_index,]
+```
+
+W2_all_child
+------------
+```{r}
+#only children (probands + siblings)
+W2_all_child <- W2_all[W2_all_proband_index | W2_all_bro_index | W2_all_sis_index,]
+```
+
+W2_fhist_child
+------------
+```{r}
+#only children (probands + siblings)
+W2_fhist_child <- W2_fhist[W2_fhist_proband_index | W2_fhist_bro_index | W2_fhist_sis_index,]
+```
+
+This is how PROBANDS (probands only) are coded: 
+  # Column 5-6: Relationship to proband -
+  #   00 proband;
+  
+#Make subset of data with just probands: 
+
+W1_Sam_proband
+------------
+```{r}
+#only probands (cases + controls)
+W1_Sam_proband <- W1_Sam[W1_Sam_proband_index,]
+```
+
+W1_fhist_proband
+------------
+```{r}
+#only probands (cases + controls)
+W1_fhist_proband <- W1_fhist[W1_fhist_proband_index,]
+```
+
+W1_all_proband
+------------
+```{r}
+#only probands (cases + controls)
+W1_all_proband <- W1_all[W1_all_proband_index,]
+```
+
+W2_Sam_proband
+------------
+```{r}
+#only probands (cases + controls)
+W2_Sam_proband <- W2_Sam[W2_Sam_proband_index,]
+```
+
+W2_fhist_proband
+------------
+```{r}
+#only probands (cases + controls)
+W2_fhist_proband <- W2_fhist[W2_fhist_proband_index,]
+```
+
+W2_all_proband
+------------
+```{r}
+#only probands (cases + controls)
+W2_all_proband <- W2_all[W2_all_proband_index,]
+```
+
+#This is how PROBAND USERS (probands who have started smoking) are coded:
+  #age of smoking intiation/onset: cigons
+  
+#Make subset of data with just PROBANDS who SMOKE: 
+
+W1_Sam_prob_synergy or control index
+--------------------------------
+```{r}
+W1_Sam_prob_cont_index <- with(W1_Sam_proband, grepl("^\\d{4}00\\d{2}{1}[C]$", W1_Sam_proband$ID))
+  # {1} [C] = look for 1 capital letter C 
+```
+
+W2_Sam_prob_synergy or control index
+--------------------------------
+```{r}
+W2_Sam_prob_cont_index <- with(W2_Sam_proband, grepl("^\\d{4}00\\d{2}{1}[C]$", W2_Sam_proband$ID))
+  # {1} [C] = look for 1 capital letter C 
+```
+
+
+W1_Sam_prob_user
+------------
+```{r}
+#only proband USERS (who smoke)
+W1_Sam_prob_users <- W1_Sam_proband[!is.na(W1_Sam_proband$cigons),]
+```
+
+W1_fhist_prob_user
+------------------
+```{r}
+#only proband USERS (who smoke)
+W1_fhist_prob_user <- W1_fhist_proband[!is.na(W1_Sam_proband$cigons),]
+```
+
+W1_all_prob_user
+------------------
+```{r}
+#only proband USERS (who smoke)
+W1_all_prob_user <- W1_all_proband[!is.na(W1_Sam_proband$cigons),]
+```
+
+W2_Sam_prob_user
+-----------------
+```{r}
+#only proband USERS (who smoke)
+W2_Sam_prob_user <- W2_Sam_proband[!is.na(W2_Sam_proband$cigons),]
+```
+
+W2_fhist_prob_user
+------------
+```{r}
+#only proband USERS (who smoke)
+W2_fhist_prob_user <- W2_fhist_proband[!is.na(W2_Sam_proband$cigons),]
+```
+
+W2_all_prob_user
+------------
+```{r}
+#only proband USERS (who smoke)
+W2_all_prob_user <- W2_all_proband[!is.na(W2_Sam_proband$cigons),]
+```
+
+
+W1_Sam_prob_synergy or control
+--------------------------------
+```{r}
+"%ni%" <- Negate("%in%")
+#only proband CONTROLS
+W1_Sam_prob_control <- W1_Sam_proband[W1_Sam_prob_cont_index,]
+#only proband CASES/SYNERGY: 
+W1_Sam_prob_test <- subset(W1_Sam_proband, W1_Sam_proband$ID %ni% W1_Sam_prob_control$ID)
+```
+
+W1_fhist_prob_synergy or control
+--------------------------------
+```{r}
+"%ni%" <- Negate("%in%")
+#only proband CONTROLS
+W1_fhist_prob_control <- W1_fhist_proband[W1_Sam_prob_cont_index,]
+#only proband CASES/SYNERGY: 
+W1_fhist_prob_test <- subset(W1_fhist_proband, W1_fhist_proband$ID %ni% W1_fhist_prob_control$ID)
+
+  #PNR TODO: Only 1 proband comes out to me for this. 
+```
+
+W1_all_prob_test (synergy) or control
+--------------------------------
+```{r}
+"%ni%" <- Negate("%in%")
+#only proband CONTROLS
+W1_all_prob_control <- W1_all_proband[W1_Sam_prob_cont_index,]
+#only proband TEST/SYNERGY: 
+W1_all_prob_test <- subset(W1_all_proband, W1_all_proband$ID %ni% W1_all_prob_control$ID)
+```
+
+
+W2_Sam_prob_synergy or control
+--------------------------------
+```{r}
+"%ni%" <- Negate("%in%")
+#only proband CONTROLS
+W2_Sam_prob_control <- W2_Sam_proband[W2_Sam_prob_cont_index,]
+#only proband CASES/SYNERGY: 
+W2_Sam_prob_test <- subset(W2_Sam_proband, W2_Sam_proband$ID %ni% W2_Sam_prob_control$ID)
+```
+
+W2_fhist_prob_synergy or control
+--------------------------------
+```{r}
+"%ni%" <- Negate("%in%")
+#only proband CONTROLS
+W2_fhist_prob_control <- W2_fhist_proband[W2_Sam_prob_cont_index,]
+#only proband CASES/SYNERGY: 
+W2_fhist_prob_test <- subset(W2_fhist_proband, W2_fhist_proband$ID %ni% W2_fhist_prob_control$ID)
+
+  #PNR TODO: Only 1 proband comes out to me for this. 
+```
+
+W2_all_prob_test (synergy) or control
+--------------------------------
+```{r}
+"%ni%" <- Negate("%in%")
+#only proband CONTROLS
+W2_all_prob_control <- W2_all_proband[W2_Sam_prob_cont_index,]
+#only proband TEST/SYNERGY: 
+W2_all_prob_test <- subset(W2_all_proband, W2_all_proband$ID %ni% W2_all_prob_control$ID)
+```
+
+-------------------------------
+*4: Output subsets as csv files*
+--------------------------------
+```{r Output child subsets}
+
+# child_list <- list(W1_Sam_child, W1_all_child, W1_fhist_child, W2_Sam_child, W2_all_child, W2_fhist_child)
+
+# save each new data frame as an individual .csv file based on its name
+
+# lapply(1:length(child_list), function(i){
+#   write.csv(child_list[[i]], 
+#           file = paste0(names(child_list[i]),".csv"),
+#           row.names = TRUE)
+# })
+
+# Create a list of child data frames:
+child_list <- list("W1_Sam_child", "W1_all_child","W1_fhist_child", "W2_Sam_child", 'W2_all_child', 'W2_fhist_child')
+
+# save each new data frame as an individual .csv file based on its name
+
+lapply(1:length(child_list), function(i) {write.csv(paste0(child_list[[i]], sep=""),
+          file = paste0(child_list[[i]], ".csv"),
+          row.names = TRUE,
+          na = "NA")})
+
+# 
+# write.csv(W1_all_child, 
+#           file = "W1_merged_child.csv",
+#           row.names = TRUE,
+#           na = "NA")
+
+```    
+
+```{r Output proband subsets, include=FALSE}
+# Create a list of proband data frames:
+
+proband_list <- list("W1_Sam_proband", "W1_all_proband", "W1_fhist_proband", "W2_Sam_proband", 'W2_all_proband', 'W2_fhist_proband')
+
+# save each new data frame as an individual .csv file based on its name
+
+lapply(1:length(proband_list), function(i) write.csv(paste0(proband_list[[i]], sep=""),
+          file = paste0(proband_list[[i]], ".csv"),
+          row.names = TRUE,
+          na = "NA"))
+```  
+
+```{r Output proband users subsets, include=FALSE}
+# Create a list of proband test data frames:
+prob_users_list <- list("W1_Sam_prob_users", "W1_all_prob_users", "W1_fhist_prob_users", "W2_Sam_prob_users", "W2_all_prob_users", "W2_fhist_prob_users")
+
+# save each new data frame as an individual .csv file based on its name
+
+lapply(1:length(prob_users_list), function(i) write.csv(prob_users_list[[i]], 
+          file = paste0(prob_users_list[[i]], ".csv"),
+          row.names = TRUE,
+          na = "NA"))
+```  
+
+
+```{r Output proband control subsets, include=FALSE}
+# Create a list of proband data frames:
+
+prob_control_list <- list("W1_Sam_prob_control", "W1_all_prob_control", "W1_fhist_prob_control", "W2_Sam_prob_control", "W2_all_prob_control", "W2_fhist_prob_control")
+
+# save each new data frame as an individual .csv file based on its name
+
+lapply(1:length(prob_control_list), function(i) write.csv(prob_control_list[[i]], 
+          file = paste0(prob_control_list[[i]], ".csv"),
+          row.names = TRUE,
+          na = "NA"))
+```  
+
+```{r Output proband test subsets, include=FALSE}
+# Create a list of proband test data frames:
+prob_test_list <- list("W1_Sam_prob_test", "W1_all_prob_test", "W1_fhist_prob_test", "W2_Sam_prob_test", "W2_all_prob_test", "W2_fhist_prob_test")
+
+# save each new data frame as an individual .csv file based on its name
+
+lapply(1:length(prob_test_list), function(i) write.csv(prob_test_list[[i]], 
+          file = paste0(prob_test_list[[i]], ".csv"),
+          row.names = TRUE,
+          na = "NA"))
+```  
